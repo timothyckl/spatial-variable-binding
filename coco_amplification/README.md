@@ -17,6 +17,7 @@ Supported models:
 | Model flag | Hugging Face model | Notes |
 |------------|--------------------|-------|
 | `qwen` | `Qwen/Qwen2-VL-2B-Instruct` | Qwen COCO runner |
+| `qwen3vl` | `Qwen/Qwen3-VL-8B-Instruct` | Qwen3 runner; use `--torch-dtype bf16` |
 | `gemma` | `google/gemma-3-4b-it` | Gemma COCO runner; requires Hugging Face access |
 | `pixtral` | `mistral-community/pixtral-12b` | Pixtral COCO runner; public model |
 
@@ -38,7 +39,8 @@ bash coco_amplification/setup_repro.sh --model MODEL --fresh
 source .venv/bin/activate
 ```
 
-Use `qwen`, `gemma`, or `pixtral` for `MODEL`.
+Use `qwen`, `gemma`, or `pixtral` for this legacy reproduction profile.
+Qwen3-VL uses the normal repository environment.
 
 Without `--fresh`, the selected profile installs into the existing `.venv`.
 

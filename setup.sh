@@ -20,8 +20,8 @@ uv venv --python 3.11
 # third_party/ (shared.paths.setup() puts it ahead of the pip copy on
 # sys.path); the pip install here is only for its dependencies.
 uv pip install \
-  "transformers>=4.51" tokenizers accelerate \
-  transformer-lens \
+  "transformers==5.21.0" tokenizers accelerate \
+  "transformer-lens==4.3.0" "better-abc==0.0.3" \
   torch torchvision \
   qwen-vl-utils datasets \
   matplotlib pillow tqdm ipykernel \

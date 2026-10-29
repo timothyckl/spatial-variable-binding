@@ -62,6 +62,7 @@ COLOR_RGB = {
 # `cf_pairs.json` uses versioned slug keys; CLIs accept the short slugs.
 CF_PAIRS_KEY = {
     "qwen2vl": "qwen2-vl-7b",
+    "qwen3vl": "qwen3-vl-8b",
     "gemma3":  "gemma-3-4b-it",
     "pixtral": "pixtral-12b",
 }
@@ -72,7 +73,7 @@ _OBJ_CACHE = Path(__file__).resolve().parents[2] / "shared" / "assets" / "object
 # WhatsUp reference (middle) objects. Side-object pools per middle are
 # derived at runtime from the controlled-images directory.
 WHATSUP_MIDDLES = ("chair", "table", "armchair")
-WHATSUP_IMAGE_SIZE = {"qwen2vl": 336, "gemma3": 896, "pixtral": 512}
+WHATSUP_IMAGE_SIZE = {"qwen2vl": 336, "qwen3vl": 384, "gemma3": 896, "pixtral": 512}
 
 
 def geom_to_image_kwargs(geom: ModelGeom) -> dict:

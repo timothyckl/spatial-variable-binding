@@ -1,7 +1,10 @@
 import sys
 
 sys.path.append("third_party/TransformerLens")
-import transformer_lens as lens
+try:
+    from transformer_lens import utilities as lens_utils
+except ImportError:  # vendored TransformerLens
+    from transformer_lens import utils as lens_utils
 
 
 class Component:
@@ -43,7 +46,8 @@ class Component:
         Args:
             layer (int): The layer to get the valid hook name for. If None, the layer is taken from the component.
         """
-        return lens.utils.get_act_name(name=self.hook_name, layer=layer or self.layer)
+        target_layer = self.layer if layer is None else layer
+        return lens_utils.get_act_name(name=self.hook_name, layer=target_layer)
 
     @property
     def full_hook_name(self) -> str:

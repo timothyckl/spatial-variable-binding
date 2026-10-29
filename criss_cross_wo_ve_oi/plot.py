@@ -20,6 +20,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 
+from shared.bootstrap import bootstrap_mean_interval
+
 
 HERE = Path(__file__).resolve().parent
 RESULTS_DIR = HERE / "results"
@@ -37,6 +39,7 @@ LINE_LABELS = ("c0 (clean answer)", "c1 (middle)", "c2 (cf answer)")
 
 MODELS = {
     "qwen2vl": "Qwen2-VL-7B-Instruct",
+    "qwen3vl": "Qwen3-VL-8B-Instruct",
     "gemma3":  "Gemma-3-4b-it",
     "pixtral": "Pixtral-12B",
 }
@@ -57,15 +60,14 @@ def _plot_one_model(slug: str, display: str, setting: str) -> None:
                              sharex=True, sharey=True, squeeze=False)
     axes = axes[0]
     n_samples = None
-    for ax, direction in zip(axes, directions):
-        arr = data[direction]                        # (n, L+1, 1, 3)
+    for direction_index, (ax, direction) in enumerate(zip(axes, directions)):
+        arr = data[direction][:, :, 0, :]            # (n, L+1, 3)
         n_samples = arr.shape[0]
-        mean = arr.mean(axis=0).squeeze(axis=1)      # (L+1, 3)
-        std  = arr.std(axis=0).squeeze(axis=1)
+        mean, low, high = bootstrap_mean_interval(arr, seed=direction_index)
         x = np.arange(mean.shape[0])
         for j in range(3):
             ax.plot(x, mean[:, j], color=LINE_COLORS[j], label=LINE_LABELS[j], lw=1.6)
-            ax.fill_between(x, mean[:, j] - std[:, j], mean[:, j] + std[:, j],
+            ax.fill_between(x, low[:, j], high[:, j],
                             color=LINE_COLORS[j], alpha=0.15)
         ax.set_title(direction.capitalize())
         ax.set_xlabel("Layer")

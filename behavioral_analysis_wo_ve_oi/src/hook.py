@@ -11,11 +11,10 @@ LM residual stream is overwritten with one of two reference signals:
 - **Background** — every other image-token position is replaced with the
   matching patch from an empty (all-white) reference image.
 
-Hook point is ``blocks.0.hook_resid_pre`` — the LM's input residual after
-the multimodal projector has folded the post-vision-encoder image tokens
-into the LM token stream. This is the deepest point at which the
-substitution is still purely "vision-derived" — any LM-side processing
-that follows must build off the ablated representation.
+The primary hook point is ``blocks.0.hook_resid_pre`` — the LM input after
+the multimodal projector. Qwen3 additionally substitutes all three DeepStack
+merger outputs, preventing later vision-derived paths from restoring ordering.
+Any LM-side processing that follows must build from the ablated representation.
 
 Reference residuals are cached by `(prompt_id, reference_image_id)` so a
 task with K unique prompts × R unique references runs at most K·R cache
@@ -37,6 +36,9 @@ from criss_cross_patching.src.tokens import (
 from probing.src.images import get_position_token_ids
 
 HOOK_NAME = "blocks.0.hook_resid_pre"
+QWEN3_DEEPSTACK_HOOKS = tuple(
+    f"vision_encoder.deepstack_mergers.{index}.hook_out" for index in range(3)
+)
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +133,7 @@ class ResidualCache:
         self.processor = processor
         self.model_key = model_key
         self._cache: dict[Hashable, torch.Tensor] = {}
+        self._deepstack_cache: dict[Hashable, tuple[torch.Tensor, ...]] = {}
         self._meta: dict[Hashable, dict] = {}
 
     def populate(self, key: Hashable, prompt: str, image) -> torch.Tensor:
@@ -145,13 +148,20 @@ class ResidualCache:
         img_start = image_start_offset(self.model, self.processor, prompt, image)
         n_img = image_token_count(self.model_key, self.processor, prompt, image)
 
+        hook_names = [HOOK_NAME]
+        if self.model_key == "qwen3vl":
+            hook_names.extend(QWEN3_DEEPSTACK_HOOKS)
         with torch.no_grad():
             _, cache = self.model.run_with_cache(
                 prompt, [image],
-                names_filter=HOOK_NAME,
+                names_filter=hook_names,
                 return_type="logits",
             )
         slice_ = cache[HOOK_NAME][0, img_start : img_start + n_img].detach().to("cpu")
+        if self.model_key == "qwen3vl":
+            self._deepstack_cache[key] = tuple(
+                cache[name].detach().to("cpu") for name in QWEN3_DEEPSTACK_HOOKS
+            )
         del cache
 
         self._cache[key] = slice_
@@ -159,8 +169,12 @@ class ResidualCache:
         return slice_
 
     def get(self, key: Hashable) -> torch.Tensor:
-        """Return the cached slice for ``key``. Caller must have populated it first."""
+        """Return the cached primary projected-embedding slice for ``key``."""
         return self._cache[key]
+
+    def get_deepstack(self, key: Hashable, index: int) -> torch.Tensor:
+        """Return one cached Qwen3 DeepStack merger output for ``key``."""
+        return self._deepstack_cache[key][index]
 
 
 # ---------------------------------------------------------------------------
@@ -182,6 +196,56 @@ def _ref_lookup_indices(model_key: str, grid_ids: Sequence[int]) -> list[int]:
     return grid_to_lm_positions(grid_ids, model_slug=model_key, image_start=0)
 
 
+def make_deepstack_ablation_hooks(
+    *,
+    model_key: str,
+    direction: str,
+    entity_ref_keys_per_item: Sequence[Sequence[Hashable]],
+    empty_ref_keys: Sequence[Hashable],
+    cache: ResidualCache,
+):
+    """Build hooks that apply the same ordering ablation to all Qwen3
+    DeepStack paths. Merger outputs are flattened across the image batch and
+    already follow merged-grid order, so no LM text offset is involved."""
+    if model_key != "qwen3vl":
+        return []
+
+    geom = GEOM[model_key]
+    grid_size = geom.num_tokens * geom.num_tokens
+    mid_grid = middle_grid_ids(model_key)
+    bg_grid = background_grid_ids(model_key, direction)
+    slot_grids = slot_grid_ids(model_key, direction)
+
+    hooks = []
+    for deepstack_index, hook_name in enumerate(QWEN3_DEEPSTACK_HOOKS):
+        def hook(value: torch.Tensor, hook, *, index=deepstack_index):
+            for item_index, (entity_keys, empty_key) in enumerate(
+                zip(entity_ref_keys_per_item, empty_ref_keys)
+            ):
+                if value.ndim == 3:
+                    target = value[item_index]
+                    offset = 0
+                else:
+                    target = value
+                    offset = item_index * grid_size
+
+                empty_slice = cache.get_deepstack(empty_key, index)
+                for clean_grid, entity_key in zip(slot_grids, entity_keys):
+                    ref = cache.get_deepstack(entity_key, index)
+                    rows = [offset + grid_id for grid_id in clean_grid]
+                    target[rows, :] = ref[mid_grid, :].to(
+                        target.device, dtype=target.dtype
+                    )
+                bg_rows = [offset + grid_id for grid_id in bg_grid]
+                target[bg_rows, :] = empty_slice[bg_grid, :].to(
+                    target.device, dtype=target.dtype
+                )
+            return value
+
+        hooks.append((hook_name, hook))
+    return hooks
+
+
 def make_ablation_hook(
     *,
     model_key: str,
@@ -194,7 +258,7 @@ def make_ablation_hook(
     """Build the substitution hook for one clean item.
 
     Args:
-        model_key: canonical model slug (``qwen2vl`` / ``gemma3`` / ``pixtral``).
+        model_key: canonical model slug.
         direction: ``left`` / ``right`` / ``above`` / ``below``.
         clean_image_start: LM-input position of the first image token in
             the clean (prompt, image) pair.
@@ -256,10 +320,18 @@ def run_ablated(
         entity_ref_keys=entity_ref_keys, empty_ref_key=empty_ref_key,
         cache=cache,
     )
+    fwd_hooks = [(HOOK_NAME, hook)]
+    fwd_hooks.extend(make_deepstack_ablation_hooks(
+        model_key=model_key,
+        direction=direction,
+        entity_ref_keys_per_item=[entity_ref_keys],
+        empty_ref_keys=[empty_ref_key],
+        cache=cache,
+    ))
     with torch.no_grad():
         logits = model.run_with_hooks(
             prompt, [image],
-            fwd_hooks=[(HOOK_NAME, hook)],
+            fwd_hooks=fwd_hooks,
             return_type="logits",
         )
     probs = torch.softmax(logits[:, -1], dim=-1)
@@ -274,6 +346,7 @@ __all__ = [
     "background_grid_ids",
     "image_token_count",
     "make_ablation_hook",
+    "make_deepstack_ablation_hooks",
     "middle_grid_ids",
     "run_ablated",
     "slot_grid_ids",

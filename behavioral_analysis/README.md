@@ -3,7 +3,7 @@
 Reproduces the **Table 1 behavioral accuracy** of *The Dual Mechanisms of Spatial Reasoning in Vision-Language Models* (arXiv [2603.22278](https://arxiv.org/abs/2603.22278)) on the local cluster.
 
 For each of the 12 cells (3 models × 4 tasks), the runner:
-1. Loads the model (Qwen2-VL-7B, Gemma-3-4b-it, or Pixtral-12b) via the shared `analysis_utils.load_model()` wrapper.
+1. Loads Qwen2-VL-7B, Qwen3-VL-8B, Gemma-3-4b-it, or Pixtral-12b via the shared model loader.
 2. Generates the task's images (synthetic squares/shapes/objects, or stitched What'sUp composites).
 3. Builds a chat-templated prompt of the form `"The <property> of the <entity> to the <direction> of <reference> is "` (Fig. 1 of the paper).
 4. Runs a single forward pass per item and compares the top-1 next-token to the target.

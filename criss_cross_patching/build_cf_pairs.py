@@ -4,7 +4,7 @@ answers correctly on BOTH the clean and counterfactual prompts.
 
 Usage:
     python -m criss_cross_patching.build_cf_pairs \\
-        --model qwen2vl --setting shapes --target 50
+        --model qwen3vl --setting shapes --target 100
 
 Tuple semantics (3 elements, middle = index 1):
   - squares  : 3 color names
@@ -89,7 +89,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--model", required=True, choices=list(GEOM))
     p.add_argument("--setting", required=True, choices=list(SETTINGS))
-    p.add_argument("--target", type=int, default=50)
+    p.add_argument("--target", type=int, default=100)
     p.add_argument("--max-attempts-per-direction", type=int, default=2000)
     p.add_argument("--output", type=Path, default=None,
                    help="output JSON path (default: cf_pairs/<setting>.json)")
@@ -104,7 +104,7 @@ def main() -> None:
     args = parse_args()
     if args.setting == "whatsup" and args.model == "pixtral":
         raise SystemExit("whatsup criss-cross has no Pixtral region maps; "
-                         "supported for qwen2vl / gemma3 only.")
+                         "supported for qwen2vl / qwen3vl / gemma3 only.")
     rng = random.Random(args.seed)
     geom = GEOM[args.model]
     out_path = args.output or HERE / "cf_pairs" / f"{args.setting}.json"

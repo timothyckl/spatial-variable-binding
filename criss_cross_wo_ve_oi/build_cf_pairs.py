@@ -10,7 +10,7 @@ this precondition adds noise (no correct baseline for the sweep to flip).
 
 Usage:
     python -m criss_cross_wo_ve_oi.build_cf_pairs \\
-        --model qwen2vl --setting shapes --target 50
+        --model qwen3vl --setting shapes --target 100
 
 Settings: squares / shapes / objects (whatsup has no paper-defined
 ablation — see README). Output merged into ``cf_pairs/<setting>.json``.
@@ -114,7 +114,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--model", required=True, choices=list(GEOM))
     p.add_argument("--setting", required=True, choices=SETTINGS)
-    p.add_argument("--target", type=int, default=50)
+    p.add_argument("--target", type=int, default=100)
     p.add_argument("--max-attempts-per-direction", type=int, default=2000)
     p.add_argument("--output", type=Path, default=None,
                    help="output JSON path (default: cf_pairs/<setting>.json)")

@@ -4,7 +4,7 @@ counterfactual prompts.
 
 Usage:
     python -m last_token_exp.build_cf_pairs \\
-        --model pixtral --setting shapes --target 50
+        --model qwen3vl --setting shapes --target 100
 
 For each direction it draws random 5-element tuples (using the same
 image/prompt recipe as `run_experiment` via `data.build_vl_prompts`),
@@ -109,8 +109,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--model", required=True, choices=list(GEOM),
                    help="model slug (short form)")
     p.add_argument("--setting", required=True, choices=list(SETTINGS))
-    p.add_argument("--target", type=int, default=50,
-                   help="number of surviving tuples per direction (default: 50)")
+    p.add_argument("--target", type=int, default=100,
+                   help="number of surviving tuples per direction (paper default: 100)")
     p.add_argument("--max-attempts-per-direction", type=int, default=2000,
                    help="cap candidate samples per direction so we never loop forever")
     p.add_argument("--output", type=Path, default=None,

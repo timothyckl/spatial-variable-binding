@@ -17,8 +17,8 @@ naturalistic images. This repo contains the mechanistic-interpretability tooling
 (activation patching, linear probing on visual-token embeddings) and the
 amplification testbed used to substantiate both findings.
 
-**Models:** Qwen2-VL-7B-Instruct, Gemma-3-4b-it, Pixtral-12B (the COCO
-amplification testbed also uses Qwen2-VL-2B-Instruct).
+**Models:** Qwen2-VL-7B-Instruct, Qwen3-VL-8B-Instruct, Gemma-3-4b-it,
+Pixtral-12B (the COCO amplification testbed also uses Qwen2-VL-2B-Instruct).
 
 ## Setup
 
@@ -35,18 +35,19 @@ interactively (`uv run huggingface-cli login`) or by exporting a token
 (`export HF_TOKEN=hf_...`). On the 12B model, set
 `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True` to avoid CUDA fragmentation.
 
-> The experiments use the **vendored** TransformerLens in `third_party/`
-> (it adds `HookedVLTransformer`, which the PyPI build lacks). `shared.paths.setup()`
-> puts it ahead of any pip-installed copy on `sys.path`, so no extra steps are needed.
+> Legacy models use the **vendored** TransformerLens in `third_party/` for
+> `HookedVLTransformer`. Qwen3-VL uses the installed TransformerLens
+> `TransformerBridge`, whose native adapter supports DeepStack and interleaved MRoPE.
+> `shared.paths.setup()` selects the backend from `--model`.
 
 ## Quickstart
 
 Run any experiment as a module **from the repo root**, one model at a time
-(`--model` accepts `qwen2vl`, `gemma3`, `pixtral`):
+(`--model` accepts `qwen2vl`, `qwen3vl`, `gemma3`, `pixtral`):
 
 ```bash
 # Table 1 — top-1 next-token accuracy on a synthetic task
-python -m behavioral_analysis.src.run --model qwen2vl --task squares
+python -m behavioral_analysis.src.run --model qwen3vl --task squares
 
 # §5.2.1 — linear position probe on visual-token embeddings
 python -m probing.run_experiment --model gemma3 --setting squares --orientation horizontal
@@ -74,14 +75,14 @@ answers correctly. Those provide a `build_cf_pairs.py` that writes
 `cf_pairs/<setting>.json` (keyed by model); build it once before running, e.g.:
 
 ```bash
-python -m last_token_exp.build_cf_pairs   --model qwen2vl --setting squares
-python -m last_token_exp.run_experiment   --model qwen2vl --setting squares --all-directions
+python -m last_token_exp.build_cf_pairs   --model qwen3vl --setting squares --target 100
+python -m last_token_exp.run_experiment   --model qwen3vl --setting squares --all-directions
 
-python -m criss_cross_patching.build_cf_pairs --model qwen2vl --setting squares
-python -m criss_cross_patching.run_experiment --model qwen2vl --kind strip --all-directions
+python -m criss_cross_patching.build_cf_pairs --model qwen3vl --setting squares --target 100
+python -m criss_cross_patching.run_experiment --model qwen3vl --kind strip --all-directions
 
 # COCO-spatial amplification (Table 2); --aggregate builds the cross-model summary
-python -m coco_amplification.run_experiment --model qwen2vl
+python -m coco_amplification.run_experiment --model qwen3vl --torch-dtype bf16
 python -m coco_amplification.run_experiment --aggregate
 ```
 

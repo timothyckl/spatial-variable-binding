@@ -51,11 +51,15 @@ def patch_embeddings(model: Any, processor: Any, image: Image.Image) -> torch.Te
     slug = _models.canonical_slug(model.model_name)
     inputs = _build_dummy_inputs(processor, image)
 
-    if slug == "qwen2vl":
-        pv = inputs["pixel_values"].to(model.vision_model.device)
-        grid_thw = inputs["image_grid_thw"].to(model.vision_model.device)
-        out = model.vision_model(pv, grid_thw=grid_thw)
-        # Qwen's vision tower already returns (N_merged, D_text) flat.
+    if slug in ("qwen2vl", "qwen3vl"):
+        vision_device = next(model.vision_model.parameters()).device
+        pv = inputs["pixel_values"].to(vision_device)
+        grid_thw = inputs["image_grid_thw"].to(vision_device)
+        if slug == "qwen3vl":
+            out = model.vision_model(pv, grid_thw=grid_thw, return_dict=True).pooler_output
+        else:
+            out = model.vision_model(pv, grid_thw=grid_thw)
+        # Qwen towers include their merger and return projected LM-width tokens.
         return out.detach().to(torch.float32).cpu()
 
     # Gemma3 + Pixtral share the same Llava-style two-step extraction.

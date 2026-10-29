@@ -3,7 +3,7 @@ for any setting (squares / shapes / objects / whatsup).
 
 Loads ``results/<model>/<setting>_final_token.npy`` and produces a 1×K grid
 (one panel per direction present in the result) of logit-probability curves
-with mean and shaded std bands across samples.
+with mean and shaded 95% bootstrap intervals (2,000 resamples).
 
 The 5 lines per panel are the positional slots of the candidate tuple:
 ``c0`` (clean answer), ``c1`` (middle/reference), ``c2`` (clean far side),
@@ -24,6 +24,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from shared.bootstrap import bootstrap_mean_interval
 
 HERE = Path(__file__).resolve().parent
 RESULTS_DIR = HERE / "results"
@@ -47,11 +49,13 @@ LINE_LABELS = ("c0 (clean ans)", "c1 (middle)", "c2 (clean far)",
 
 _SHORT_TO_VERSIONED = {
     "qwen2vl": "qwen2-vl-7b",
+    "qwen3vl": "qwen3-vl-8b",
     "gemma3":  "gemma-3-4b-it",
     "pixtral": "pixtral-12b",
 }
 _DISPLAY = {
     "qwen2vl": "Qwen2-VL-7B-Instruct",
+    "qwen3vl": "Qwen3-VL-8B-Instruct",
     "gemma3":  "Gemma-3-4b-it",
     "pixtral": "Pixtral-12B",
 }
@@ -84,14 +88,13 @@ def plot_one(model: str, setting: str) -> Path | None:
     fig, axes = plt.subplots(1, len(directions), figsize=(5 * len(directions), 4.2),
                              sharey=True, squeeze=False)
     axes = axes[0]
-    for ax, direction in zip(axes, directions):
+    for direction_index, (ax, direction) in enumerate(zip(axes, directions)):
         arr = results[direction][:, :, 0, :]  # (samples, layers, colors)
-        mean = arr.mean(axis=0)
-        std = arr.std(axis=0)
+        mean, low, high = bootstrap_mean_interval(arr, seed=direction_index)
         for c in range(n_colors):
             ax.plot(layers, mean[:, c], color=LINE_COLORS[c],
                     label=LINE_LABELS[c], linewidth=2.0)
-            ax.fill_between(layers, mean[:, c] - std[:, c], mean[:, c] + std[:, c],
+            ax.fill_between(layers, low[:, c], high[:, c],
                             color=LINE_COLORS[c], alpha=0.18, linewidth=0)
         ax.set_title(direction.capitalize(), fontsize=14)
         ax.set_xlabel("Layer")

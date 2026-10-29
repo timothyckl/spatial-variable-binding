@@ -1,7 +1,7 @@
 """The criss-cross swap-patching loop.
 
-For one ``(prompt, image)`` clean–counterfactual pair, sweep every LM-layer
-hook point (resid_pre of layer 0 + resid_post of every layer) and patch the
+For one ``(prompt, image)`` clean–counterfactual pair, sweep the
+architecture-aligned residual slots and patch the
 clean run's residual stream from the cf run's cache at *swapped* image-token
 positions:
 
@@ -30,6 +30,7 @@ import torch
 
 from shared.component import Component               # parent repo
 from shared.metrics import logit_prob                 # parent repo
+from shared.layer_hooks import residual_components    # parent repo
 from shared.vision_language_prompts import VLPrompt   # parent repo
 
 
@@ -114,15 +115,13 @@ def criss_cross_sweep(model,
     Slot 0 = ``resid_pre`` of layer 0 (post-embed, where vision tokens enter
     the LM); slots ``1..L`` = ``resid_post`` of LM layer ``slot - 1``.
     """
-    n_layers = model.cfg.n_layers
-    n_slots = n_layers + 1
+    components = residual_components(model)
+    n_slots = len(components)
     n_prompts = len(vl_prompts)
     n_colors = len(vl_prompts[0].prob_strs)
 
     results = torch.zeros(n_prompts, n_slots, 1, n_colors, dtype=torch.float32)
-    for slot in range(n_slots):
-        comp = (Component("resid_pre", layer=0) if slot == 0
-                else Component("resid_post", layer=slot - 1))
+    for slot, comp in enumerate(components):
         results[:, slot, 0, :] = _patch_single_component(
             model, vl_prompts, comp,
             clean_positions=clean_positions,

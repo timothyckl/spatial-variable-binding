@@ -3,6 +3,7 @@
 Canonical usage from the repo root:
 
     python -m coco_amplification.run_experiment --model qwen
+    python -m coco_amplification.run_experiment --model qwen3vl --torch-dtype bf16
     python -m coco_amplification.run_experiment --model gemma
     python -m coco_amplification.run_experiment --model pixtral
     python -m coco_amplification.run_experiment --aggregate
@@ -52,6 +53,23 @@ MODEL_CONFIGS = {
         "prompt_mode": "spatial_anchor_reference",
         "artifact_type": "coco_2obj_spatial_qwen_baseline",
         "report_label": "Qwen2-VL-2B",
+        "prompt_description": None,
+        "eval_order": "natural",
+    },
+    "qwen3-vl-8b-instruct": {
+        "aliases": {
+            "qwen3vl",
+            "qwen3-vl-8b",
+            "qwen3-vl-8b-instruct",
+            "qwen/qwen3-vl-8b-instruct",
+        },
+        "module": "qwen3",
+        "result_slug": "qwen3-vl-8b-instruct",
+        "file_slug": "qwen3-vl-8b",
+        "schema_version": "qwen3_coco_2obj_spatial_anchor_strict_v1",
+        "prompt_mode": "spatial_anchor_reference",
+        "artifact_type": "coco_2obj_spatial_qwen3_baseline",
+        "report_label": "Qwen3-VL-8B",
         "prompt_description": None,
         "eval_order": "natural",
     },
@@ -117,7 +135,7 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--model", default="qwen",
-                   help="Supported: qwen, gemma, pixtral")
+                   help="Supported: qwen, qwen3vl, gemma, pixtral")
     p.add_argument("--torch-dtype", default="fp32", choices=("fp32", "bf16"))
     p.add_argument("--coco-dir", default=None,
                    help="COCO cache root (default: $COCO_DIR or shared/coco_2obj)")
@@ -216,6 +234,10 @@ def run(args: argparse.Namespace) -> None:
         from coco_amplification.src import qwen as model_helpers
 
         runner_cls = model_helpers.QwenCocoRunner
+    elif model_cfg["module"] == "qwen3":
+        from coco_amplification.src import qwen3 as model_helpers
+
+        runner_cls = model_helpers.Qwen3CocoRunner
     elif model_cfg["module"] == "gemma":
         from coco_amplification.src import gemma as model_helpers
 

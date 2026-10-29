@@ -53,6 +53,7 @@ def _row_strip(num_tokens: int, r_start: int, r_end: int) -> list[int]:
 # Left and right MUST have equal width — the swap_hook pairs positions 1:1.
 _STRIP_LAYOUT: Mapping[str, tuple[int, int, int]] = {
     "qwen2vl":  (4, 4, 4),     # N=12: 4+4+4
+    "qwen3vl":  (4, 4, 4),     # N=12: 4+4+4
     "gemma3":   (5, 6, 5),     # N=16: 5+6+5 (outer = (N - middle) / 2 with middle = entity_size+spacing)
     "pixtral":  (5, 5, 5),     # N=15: 5+5+5
 }
@@ -150,6 +151,11 @@ WHATSUP_STRIP_REGIONS: Mapping[str, Mapping[str, Mapping[str, list[int]]]] = {
                      "right": _box(16, range(16), range(11, 16))},
     },
 }
+
+# Qwen3 uses the same normalized 12×12 composite layout as Qwen2. The maps
+# are shared deliberately and are verified against the Qwen3 processor grid.
+WHATSUP_OBJECT_REGIONS["qwen3vl"] = WHATSUP_OBJECT_REGIONS["qwen2vl"]
+WHATSUP_STRIP_REGIONS["qwen3vl"] = WHATSUP_STRIP_REGIONS["qwen2vl"]
 
 
 def whatsup_regions(model_slug: str, middle: str, kind: str) -> Mapping[str, list[int]]:

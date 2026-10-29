@@ -1,14 +1,9 @@
-"""Unified VLM loader for the three Table-1 / Figure-3 models.
+"""Unified VLM loader for the spatial variable-binding experiments.
 
-Accepts any of the slug naming conventions used across the codebase:
-
-  - short:       "qwen2vl"           "gemma3"          "pixtral"
-  - versioned:   "qwen2-vl-7b"       "gemma-3-4b-it"   "pixtral-12b"
-  - full HF id:  "Qwen/Qwen2-VL-7B-Instruct" / "google/gemma-3-4b-it" /
-                 "mistral-community/pixtral-12b"
-
-and dispatches to `analysis_utils.load_model()`, plus the post-load patches
-required on `transformers>=4.55`:
+Accepts case-insensitive short slugs (``qwen2vl``, ``qwen3vl``, ``gemma3``,
+``pixtral``), versioned names, or full Hugging Face IDs. Qwen3 uses the native
+TransformerLens bridge; legacy models retain the vendored loader and their
+post-load compatibility patches:
 
   - Gemma3:  alias `inner_model.language_model.lm_head = inner_model.lm_head`
              so the gemma3 weight converter finds it (handled inside
@@ -31,6 +26,7 @@ paths.setup()  # ensure analysis_utils + TLens are importable
 
 HF_ID = {
     "qwen2vl": "Qwen/Qwen2-VL-7B-Instruct",
+    "qwen3vl": "Qwen/Qwen3-VL-8B-Instruct",
     "gemma3":  "google/gemma-3-4b-it",
     "pixtral": "mistral-community/pixtral-12b",
 }
@@ -56,6 +52,7 @@ HF_ID = {
 # the `torch_dtype` kwarg on `load()` for precision ablations.
 DEFAULT_DTYPE: dict[str, torch.dtype] = {
     "qwen2vl": torch.float32,
+    "qwen3vl": torch.bfloat16,
     "gemma3":  torch.float32,
     "pixtral": torch.bfloat16,
 }
@@ -66,6 +63,10 @@ _SLUG_ALIASES = {
     "qwen2-vl-7b":                   "qwen2vl",
     "qwen2-vl-7b-instruct":          "qwen2vl",
     "qwen/qwen2-vl-7b-instruct":     "qwen2vl",
+    "qwen3vl":                       "qwen3vl",
+    "qwen3-vl-8b":                   "qwen3vl",
+    "qwen3-vl-8b-instruct":          "qwen3vl",
+    "qwen/qwen3-vl-8b-instruct":     "qwen3vl",
     "gemma3":                        "gemma3",
     "gemma-3-4b-it":                 "gemma3",
     "google/gemma-3-4b-it":          "gemma3",
@@ -99,24 +100,37 @@ def load(
 ) -> tuple[Any, Any]:
     """Return `(model, processor)` with all known patches applied.
 
-    `model` is a `HookedVLTransformer`; `processor` is the HF processor.
-    `torch_dtype=None` (default) selects each model's `DEFAULT_DTYPE`
-    (Qwen/Gemma → fp32, Pixtral → bf16); pass an explicit dtype to override.
+    Legacy models return a `HookedVLTransformer`; Qwen3 returns the bridge
+    compatibility facade. `processor` is the HF processor. `torch_dtype=None`
+    selects each model's `DEFAULT_DTYPE` (Qwen2/Gemma → fp32,
+    Qwen3/Pixtral → bf16).
     """
-    from .analysis_utils import load_model
-
     slug = canonical_slug(model_name)
     hf_id = HF_ID[slug]
     if torch_dtype is None:
         torch_dtype = DEFAULT_DTYPE[slug]
-    model, processor = load_model(
-        hf_id, hf_id,
-        device=device,
-        device_list=device_list,
-        cache_dir=cache_dir,
-        torch_dtype=torch_dtype,
-        extra_hooks=extra_hooks,
-    )
+
+    if slug == "qwen3vl":
+        from .qwen3_bridge import load_qwen3_bridge
+
+        model, processor = load_qwen3_bridge(
+            hf_id,
+            device=device,
+            device_list=device_list,
+            torch_dtype=torch_dtype,
+            cache_dir=cache_dir,
+        )
+    else:
+        from .analysis_utils import load_model
+
+        model, processor = load_model(
+            hf_id, hf_id,
+            device=device,
+            device_list=device_list,
+            cache_dir=cache_dir,
+            torch_dtype=torch_dtype,
+            extra_hooks=extra_hooks,
+        )
 
     if slug == "pixtral":
         if processor.tokenizer is not None:

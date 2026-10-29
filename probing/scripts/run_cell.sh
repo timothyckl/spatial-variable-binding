@@ -1,7 +1,7 @@
 #!/bin/bash
 # Submit one (model, setting, orientation) probe-training cell as a SLURM job.
 # Usage: scripts/run_cell.sh <model> <setting> <orientation>
-#   model       ∈ {qwen2vl, gemma3, pixtral}
+#   model       ∈ {qwen2vl, qwen3vl, gemma3, pixtral}
 #   setting     ∈ {squares, shapes, objects, whatsup, grid2x2, grid3x3}
 #   orientation ∈ {horizontal, vertical}
 

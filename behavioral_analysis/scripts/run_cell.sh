@@ -1,7 +1,7 @@
 #!/bin/bash
 # Submit one Table-1 cell as a SLURM job.
 # Usage: scripts/run_cell.sh <model> <task>
-#   model ∈ {qwen2vl, gemma3, pixtral}
+#   model ∈ {qwen2vl, qwen3vl, gemma3, pixtral}
 #   task  ∈ {squares, shapes, objects, whatsup}
 
 set -euo pipefail

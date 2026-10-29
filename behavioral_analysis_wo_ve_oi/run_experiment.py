@@ -54,6 +54,7 @@ _PAPER_TABLE5 = {
 
 _DISPLAY_NAME = {
     "qwen2vl": "Qwen2-VL-7B-Instruct",
+    "qwen3vl": "Qwen3-VL-8B-Instruct",
     "gemma3":  "Gemma-3-4b-it",
     "pixtral": "Pixtral-12b",
 }
@@ -108,7 +109,8 @@ def _aggregate(results_dir: Path) -> None:
     """Read every ``<model>_<task>_ablated.pkl`` under ``results_dir`` and
     emit ``paper_table5_reproduction.{csv,md}`` alongside them."""
     rows: dict[str, dict[str, float]] = {}
-    for model in ("qwen2vl", "gemma3", "pixtral"):
+    aggregate_models = ("qwen2vl", "qwen3vl", "gemma3", "pixtral")
+    for model in aggregate_models:
         rows[model] = {}
         for task in ("squares", "shapes", "objects"):
             p = results_dir / f"{model}_{task}_ablated.pkl"
@@ -139,15 +141,18 @@ def _aggregate(results_dir: Path) -> None:
         "| Model | Squares | Shapes | Objects |",
         "|---|---|---|---|",
     ]
-    for m in ("qwen2vl", "gemma3", "pixtral"):
+    for m in aggregate_models:
         accs = rows[m]
         cells = []
         for t in ("squares", "shapes", "objects"):
-            paper = _PAPER_TABLE5[m][t]
+            paper = _PAPER_TABLE5.get(m, {}).get(t)
             if t not in accs:
                 cells.append("—")
                 continue
             ours = accs[t]
+            if paper is None:
+                cells.append(f"{ours:.3f} / —")
+                continue
             delta = ours - paper
             flag = "✓" if abs(delta) <= 0.05 else (
                 f"⚠️ {'+' if delta > 0 else ''}{delta:.2f}"

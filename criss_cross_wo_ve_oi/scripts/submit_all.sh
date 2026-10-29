@@ -4,7 +4,7 @@
 # the canonical `squares_object_patching_under_ablation.npy`.
 #
 # Usage: scripts/submit_all.sh <model>
-#   model ∈ {qwen2vl, gemma3, pixtral}
+#   model ∈ {qwen2vl, qwen3vl, gemma3, pixtral}
 
 set -euo pipefail
 

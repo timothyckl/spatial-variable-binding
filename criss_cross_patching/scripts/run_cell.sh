@@ -1,7 +1,7 @@
 #!/bin/bash
 # Submit one (model, kind, direction) criss-cross patching cell as a SLURM job.
 # Usage: scripts/run_cell.sh <model> <kind> <direction>
-#   model     ∈ {qwen2vl, gemma3, pixtral}
+#   model     ∈ {qwen2vl, qwen3vl, gemma3, pixtral}
 #   kind      ∈ {object, strip}      # object = Fig 6, strip = Fig 7
 #   direction ∈ {left, right, above, below}
 

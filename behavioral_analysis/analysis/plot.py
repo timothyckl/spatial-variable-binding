@@ -4,7 +4,7 @@ Inputs:
 - `results/table1_summary.csv` (produced by `analysis/aggregate.py`)
 
 Outputs:
-- `figures/table1_comparison.png` — 3×4 grid, one bar pair per cell (paper vs ours),
+- `figures/table1_comparison.png` — model×task grid, one bar pair per cell (paper vs ours),
   with the residual annotated. Mismatches (|Δ|>0.04) are highlighted in red.
 """
 
@@ -23,16 +23,18 @@ FIGURES.mkdir(exist_ok=True)
 # Paper-reproduction models (have Table-1 targets) — used by the paper-vs-ours
 # comparison figure. The grouped performance figure also includes the added
 # models (no paper entry); see GROUPED_MODEL_ORDER.
-MODEL_ORDER = ["qwen2vl", "gemma3", "pixtral"]
-GROUPED_MODEL_ORDER = ["qwen2vl", "gemma3", "pixtral"]
+MODEL_ORDER = ["qwen2vl", "qwen3vl", "gemma3", "pixtral"]
+GROUPED_MODEL_ORDER = ["qwen2vl", "qwen3vl", "gemma3", "pixtral"]
 TASK_ORDER = ["squares", "shapes", "objects", "whatsup"]
 MODEL_LABELS = {
     "qwen2vl": "Qwen2-VL-7B",
+    "qwen3vl": "Qwen3-VL-8B",
     "gemma3":  "Gemma-3-4b",
     "pixtral": "Pixtral-12b",
 }
 MODEL_COLORS = {
     "qwen2vl": "#1f77b4",
+    "qwen3vl": "#9467bd",
     "gemma3":  "#2ca02c",
     "pixtral": "#d62728",
 }

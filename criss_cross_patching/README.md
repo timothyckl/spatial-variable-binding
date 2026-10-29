@@ -109,7 +109,7 @@ All hard-coded to match section 5.2.2:
   intervention is what changes the predicted color, not the prompt.
 - `prob_strs = [c0, c1, c2]`, summed token-prob over
   `{lower, Capitalize, ' '+lower, ' '+Capitalize}`.
-- Per-model batch size: qwen2vl 13, gemma3 5, pixtral 1.
+- Per-model batch size: qwen2vl 13, qwen3vl 1, gemma3 5, pixtral 1.
 
 ## Saved-data format
 

@@ -1,6 +1,6 @@
 """Last-token residual-stream patching machinery for paper Figure 3.
 
-For each LM hook point (resid_pre layer 0 + resid_post layer 0..L-1):
+For each of the n_layers+1 architecture-aligned residual slots:
 
   1. Run the counterfactual prompt+image with `run_with_cache` and pull
      the activation at the **final ("is") token** of the chosen hook
@@ -11,9 +11,9 @@ For each LM hook point (resid_pre layer 0 + resid_post layer 0..L-1):
   3. Score the logits at the final position by `logit_prob` over the
      4 spelling variants of each candidate color.
 
-Returns a `(n_samples, n_layers + 1, 1, n_colors)` array; slot 0 along
-the layer axis is `resid_pre` of layer 0 (post-embed), slots `1..L` are
-`resid_post` of each LM layer.
+Returns a `(n_samples, n_layers + 1, 1, n_colors)` array. Legacy models use
+post-embed plus each block output. Qwen3 uses each block input plus the final
+block output, so inputs after the first three blocks include DeepStack additions.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ import torch          # noqa: E402
 
 from shared.component import Component               # noqa: E402
 from shared.metrics import logit_prob                # noqa: E402
+from shared.layer_hooks import residual_components   # noqa: E402
 from shared.vision_language_prompts import VLPrompt  # noqa: E402
 
 
@@ -115,17 +116,13 @@ def patch_all_layers(
 ) -> np.ndarray:
     """Sweep every LM layer (plus the post-embed slot). Returns ndarray
     of shape `(n_samples, n_layers + 1, 1, n_colors)`."""
-    n_layers = model.cfg.n_layers
-    n_slots = n_layers + 1   # idx 0 = resid_pre layer 0; idx l = resid_post (l-1)
+    components = residual_components(model)
+    n_slots = len(components)
     n_prompts = len(vl_prompts)
     n_colors = len(vl_prompts[0].prob_strs)
 
     results = torch.zeros(n_prompts, n_slots, 1, n_colors, dtype=torch.float32)
-    for idx in range(n_slots):
-        component = (
-            Component("resid_pre", layer=0) if idx == 0
-            else Component("resid_post", layer=idx - 1)
-        )
+    for idx, component in enumerate(components):
         results[:, idx, 0, :] = _patch_single_component(
             model, vl_prompts, component, batch_size=batch_size,
         )

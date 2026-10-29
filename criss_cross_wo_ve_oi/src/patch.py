@@ -2,16 +2,15 @@
 
 Combines two existing interventions, applied per layer slot:
 
-1. **Layer-0 ablation** (paper §5.3.1, ``behavioral_analysis_wo_ve_oi.src.hook``) on
-   **both** the clean and the cf forwards: every square-token residual is
-   replaced by the middle-slot patches of an isolated-middle reference
-   image with the same color (so color is preserved, position is erased),
-   and every background residual is replaced by the matching patches of
-   an all-white reference. Hook point: ``blocks.0.hook_resid_pre``.
+1. **Vision-derived ordering ablation** (paper §5.3.1,
+   ``behavioral_analysis_wo_ve_oi.src.hook``) on **both** clean and cf forwards:
+   entity residuals are replaced by isolated-middle references and background
+   residuals by an empty reference. Qwen3 applies this to the primary projected
+   embeddings and all three DeepStack paths.
 
 2. **Criss-cross object patching** (paper §5.2.2, ``criss_cross_patching``)
-   on the *ablated* activations: at each layer slot ``l`` (``resid_pre``
-   layer 0 + ``resid_post`` layers 0..L-1), copy cf's residuals at the
+   on the *ablated* activations: at each architecture-aligned residual slot,
+   copy cf's residuals at the
    *swapped* square positions over clean's residuals at the (unswapped)
    square positions.
 
@@ -36,6 +35,7 @@ import torch
 
 from shared.component import Component               # parent repo
 from shared.metrics import logit_prob                 # parent repo
+from shared.layer_hooks import residual_components    # parent repo
 from shared.vision_language_prompts import VLPrompt   # parent repo
 
 from criss_cross_patching.src.patch import _prob_label_tensor
@@ -48,6 +48,7 @@ from behavioral_analysis_wo_ve_oi.src.hook import (
     HOOK_NAME as ABL_HOOK,
     ResidualCache,
     background_grid_ids,
+    make_deepstack_ablation_hooks,
     middle_grid_ids,
     slot_grid_ids,
 )
@@ -165,8 +166,28 @@ def _patch_single_component_ablated(
             cache=cache,
         )
 
+        clean_entity_keys = [
+            [(color, prompt) for color in colors]
+            for colors, prompt in zip(
+                clean_colors_per_item[start:end], prompts_per_item[start:end]
+            )
+        ]
+        cf_entity_keys = [
+            [(color, prompt) for color in colors]
+            for colors, prompt in zip(
+                cf_colors_per_item[start:end], prompts_per_item[start:end]
+            )
+        ]
+        empty_keys = [("empty", prompt) for prompt in prompts_per_item[start:end]]
+        cf_abl_hooks = [(ABL_HOOK, cf_abl)]
+        cf_abl_hooks.extend(make_deepstack_ablation_hooks(
+            model_key=model_key, direction=direction,
+            entity_ref_keys_per_item=cf_entity_keys,
+            empty_ref_keys=empty_keys, cache=cache,
+        ))
+
         # cf forward with ablation, caching only the swap hook
-        with model.hooks(fwd_hooks=[(ABL_HOOK, cf_abl)]):
+        with model.hooks(fwd_hooks=cf_abl_hooks):
             _, cf_cache = model.run_with_cache(
                 cf_prompts, cf_images, return_type="logits",
                 names_filter=[swap_hook_name],
@@ -180,6 +201,11 @@ def _patch_single_component_ablated(
         # swap target IS layer-0 resid_pre, both hooks attach to the same name
         # and TLens applies them in the listed order (ablation first, then swap).
         fwd_hooks = [(ABL_HOOK, clean_abl)]
+        fwd_hooks.extend(make_deepstack_ablation_hooks(
+            model_key=model_key, direction=direction,
+            entity_ref_keys_per_item=clean_entity_keys,
+            empty_ref_keys=empty_keys, cache=cache,
+        ))
         fwd_hooks.append((swap_hook_name, partial(swap_hook, cache=cf_cache)))
 
         patched = model.run_with_hooks(
@@ -218,19 +244,15 @@ def criss_cross_sweep_under_ablation(
 ) -> torch.Tensor:
     """Layer-by-layer object-patching sweep under ordering ablation.
 
-    Returns shape ``(n_samples, n_layers + 1, 1, n_colors)``. Slot 0 is
-    ``resid_pre`` of layer 0; slots ``1..L`` are ``resid_post`` of layer
-    ``slot - 1``.
+    Returns shape ``(n_samples, n_layers + 1, 1, n_colors)``.
     """
-    n_layers = model.cfg.n_layers
-    n_slots = n_layers + 1
+    components = residual_components(model)
+    n_slots = len(components)
     n_prompts = len(vl_prompts)
     n_colors = len(vl_prompts[0].prob_strs)
 
     results = torch.zeros(n_prompts, n_slots, 1, n_colors, dtype=torch.float32)
-    for slot in range(n_slots):
-        comp = (Component("resid_pre", layer=0) if slot == 0
-                else Component("resid_post", layer=slot - 1))
+    for slot, comp in enumerate(components):
         results[:, slot, 0, :] = _patch_single_component_ablated(
             model, vl_prompts, comp,
             model_key=model_key, direction=direction, cache=cache,
