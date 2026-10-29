@@ -59,6 +59,7 @@ HERE = Path(__file__).resolve().parent
 
 _SLUG_TO_JSON = {
     "qwen2vl": "qwen2-vl-7b",
+    "qwen3vl": "qwen3-vl-8b",
     "gemma3":  "gemma-3-4b-it",
     "pixtral": "pixtral-12b",
 }

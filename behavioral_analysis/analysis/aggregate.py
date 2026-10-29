@@ -4,7 +4,7 @@ Reads `results/<model>_<task>_baseline.{pkl,txt}` files, extracts the overall
 accuracy from each, and emits `results/table1_summary.csv` plus a human-readable
 `results/table1_summary.md`.
 
-The markdown has two tables: the paper reproduction for the three Table-1 models
+The markdown has two tables: the paper reproduction for the configured models
 (`PAPER_MODELS`, compared to the paper's reported numbers with an OK/HIGH/LOW
 flag), and an "added models" table for VLMs we ran beyond the paper
 (`EXTRA_MODELS` — LLaVA-1.5-7B, Qwen2-VL-2B), which have no paper entry and so
@@ -26,6 +26,10 @@ PAPER_TABLE1 = {
     ("qwen2vl", "shapes"):   1.00,
     ("qwen2vl", "objects"):  0.73,
     ("qwen2vl", "whatsup"):  0.73,
+    ("qwen3vl", "squares"):  1.00,
+    ("qwen3vl", "shapes"):   1.00,
+    ("qwen3vl", "objects"):  1.00,
+    ("qwen3vl", "whatsup"):  0.88,
     ("gemma3",  "squares"):  0.98,
     ("gemma3",  "shapes"):   0.99,
     ("gemma3",  "objects"):  0.99,
@@ -39,12 +43,13 @@ PAPER_TABLE1 = {
 # Paper-reproduction models (have Table-1 targets) and added models (no paper
 # entry — see README/this module's __doc__). The added models are reported in
 # their own table with accuracy only, no ✓/⚠️ comparison.
-PAPER_MODELS = ["qwen2vl", "gemma3", "pixtral"]
+PAPER_MODELS = ["qwen2vl", "qwen3vl", "gemma3", "pixtral"]
 EXTRA_MODELS = []
 TASKS = ["squares", "shapes", "objects", "whatsup"]
 
 DISPLAY_NAME = {
     "qwen2vl":   "Qwen2-VL-7B-Instruct",
+    "qwen3vl":   "Qwen3-VL-8B-Instruct",
     "gemma3":    "Gemma-3-4b-it",
     "pixtral":   "Pixtral-12b",
 }

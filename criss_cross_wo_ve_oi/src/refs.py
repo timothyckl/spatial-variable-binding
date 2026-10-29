@@ -19,6 +19,7 @@ from pathlib import Path
 from shared.images import SHAPE_DRAW_FNS
 from shared.objects import OBJECT_NAMES
 from shared.palette import palette_for
+from criss_cross_patching.src.data import COLOR_RGB
 from behavioral_analysis_wo_ve_oi.src.references import (
     isolated_middle_object, isolated_middle_shape, isolated_middle_square,
 )
@@ -63,10 +64,19 @@ def iso_reference_images(setting: str, model_key: str) -> dict:
     puts in the tuples: color name (squares), ``(shape, color)`` tuple
     (shapes), object name (objects).
     """
-    palette = palette_for(model_key)
     if setting == "squares":
-        return {c: isolated_middle_square(c, model_key=model_key, palette=palette)
-                for c in palette}
+        # Match the criss-cross renderer and candidate pool exactly. That pool
+        # includes Orange for Qwen models, while shared.palette.palette_for()
+        # intentionally contains only the six behavioral-analysis colors.
+        return {
+            color: isolated_middle_square(
+                color, model_key=model_key, palette=COLOR_RGB
+            )
+            for color in COLOR_RGB
+            if color != "White"
+        }
+
+    palette = palette_for(model_key)
     if setting == "shapes":
         entities = list(zip(SHAPE_DRAW_FNS.keys(), palette.keys()))
         return {(sh, co): isolated_middle_shape(sh, co, model_key=model_key, palette=palette)

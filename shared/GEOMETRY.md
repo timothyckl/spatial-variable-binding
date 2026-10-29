@@ -9,6 +9,7 @@ values are aligned against.
 | Model | # Image tokens | Pixels / Token | Tokens / Object | Object spacing | Source |
 |---|---|---|---|---|---|
 | Qwen2-VL-7B-Instruct | 12×12 | 28×28 | 2×2 | 2 | paper Table 4 |
+| Qwen3-VL-8B-Instruct | 12×12 | 32×32 | 2×2 | 2 | paper-aligned Qwen3 setup |
 | Gemma-3-4b-it       | 16×16 | 56×56 | 3×3 | 3 | paper Table 4 |
 | Pixtral-12b         | **15×15** | **16×16** | **2×2** | **2** | matches Pixtral's 16-px patch stride (axes transposed vs paper Table 4 — see below) |
 
@@ -52,6 +53,7 @@ Callers should use `geom_for(model_key, task)`; overrides fall back to
 | Model | dtype | Reason |
 |---|---|---|
 | Qwen2-VL-7B-Instruct | **fp32** | `analysis_utils.load_model` defaults to fp32. Table 5 (ordering ablation) is precision-sensitive at borderline logits, so the canonical results are fp32. |
+| Qwen3-VL-8B-Instruct | **bf16** | Native model precision; loaded through TransformerLens `TransformerBridge`. |
 | Gemma-3-4b-it | **fp32** | Same. |
 | Pixtral-12b | bf16 | bf16-vs-fp32 ablation on all four behavioral tasks (`pixtral_<task>_baseline_bf16.{pkl,txt}` at the time of the switch) showed Δ≈0 on Squares/Objects/WhatsUp and Δ −0.023 on Shapes (0.546 → 0.523), still within ±0.04 of paper 0.55. The Shapes drift comes from ~11/480 borderline-logit flips — per-direction tallies (30, 68, 81, 83) → (26, 64, 80, 81). Pixtral keeps bf16 for the memory/speed savings on the 12B model. |
 
@@ -123,4 +125,4 @@ Mapping the column names to our `ModelGeom` schema:
 | `Object spacing` | `spacing` |
 
 Resulting canvas size = `num_tokens × token_size`:
-- Qwen 336 px, Gemma 896 px, Pixtral 240 px.
+- Qwen2 336 px, Qwen3 384 px, Gemma 896 px, Pixtral 240 px.

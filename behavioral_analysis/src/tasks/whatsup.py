@@ -31,6 +31,7 @@ from ..eval import EvalResult, norm_token, top1_token
 # Per-model stitched image size (each model's native vision input size).
 WHATSUP_IMAGE_SIZE = {
     "qwen2vl": 336,
+    "qwen3vl": 384,
     "gemma3":  896,
     "pixtral": 512,   # pixtral_whatsup_floor_baseline_runner.py
 }

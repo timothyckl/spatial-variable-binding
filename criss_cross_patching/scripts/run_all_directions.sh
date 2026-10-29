@@ -2,7 +2,7 @@
 # One job per (model, kind) — runs all 4 directions in a single Python
 # process so the VLM only loads once.
 # Usage: scripts/run_all_directions.sh <model> <kind>
-#   model ∈ {qwen2vl, gemma3, pixtral}
+#   model ∈ {qwen2vl, qwen3vl, gemma3, pixtral}
 #   kind  ∈ {object, strip}
 
 set -eu

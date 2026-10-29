@@ -26,6 +26,7 @@ from probing.src.config import GEOM
 # start of the image-token block.
 IMAGE_TOKEN_IDS = {
     "qwen2vl": [151655],            # <|image_pad|>
+    "qwen3vl": [151655],            # <|image_pad|>
     "gemma3":  [262144],            # <image_soft_token>
     "pixtral": [10, 12],            # [IMG], [IMG_BREAK]
 }
@@ -104,7 +105,7 @@ def grid_to_lm_positions(
     geom = GEOM[model_slug]
     N = geom.num_tokens
 
-    if model_slug in ("qwen2vl", "gemma3"):
+    if model_slug in ("qwen2vl", "qwen3vl", "gemma3"):
         return [image_start + i for i in grid_indices]
 
     if model_slug == "pixtral":

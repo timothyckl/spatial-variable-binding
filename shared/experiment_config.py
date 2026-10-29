@@ -61,6 +61,7 @@ class ModelGeom:
 # 16-px patch stride). See `GEOMETRY.md` for the column mapping.
 GEOM: dict[str, ModelGeom] = {
     "qwen2vl":  ModelGeom(num_tokens=12, token_size=28, entity_size=2, spacing=2),
+    "qwen3vl":  ModelGeom(num_tokens=12, token_size=32, entity_size=2, spacing=2),
     "gemma3":   ModelGeom(num_tokens=16, token_size=56, entity_size=3, spacing=3),
     "pixtral":  ModelGeom(num_tokens=15, token_size=16, entity_size=2, spacing=2),
 }
@@ -82,6 +83,7 @@ def geom_for(model_key: str, task: str) -> ModelGeom:
 # "whitespace width" column). In token units.
 STRIP_WIDTH: dict[str, int] = {
     "qwen2vl":  4,
+    "qwen3vl":  4,
     "gemma3":   3,
     "pixtral":  2,
 }
@@ -91,11 +93,13 @@ STRIP_WIDTH: dict[str, int] = {
 BATCH_SIZES: dict[str, dict[str, int]] = {
     "last_token_exp": {
         "qwen2vl": 13,
+        "qwen3vl": 1,
         "gemma3":  5,
         "pixtral": 1,
     },
     "criss_cross_patching": {
         "qwen2vl": 13,
+        "qwen3vl": 1,
         "gemma3":  5,
         "pixtral": 1,
     },

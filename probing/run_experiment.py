@@ -135,7 +135,7 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument("--model", required=True,
-                   help="model slug — qwen2vl / gemma3 / pixtral, "
+                   help="model slug — qwen2vl / qwen3vl / gemma3 / pixtral, "
                         "or any alias accepted by shared.models")
     p.add_argument("--setting", choices=SETTINGS, default=None,
                    help="One of: " + ", ".join(SETTINGS))

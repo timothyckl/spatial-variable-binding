@@ -1,7 +1,7 @@
 #!/bin/bash
 # Submit one (model, direction) cell of the §5.3.2 experiment as a SLURM job.
 # Usage: scripts/run_cell.sh <model> <direction>
-#   model     ∈ {qwen2vl, gemma3, pixtral}
+#   model     ∈ {qwen2vl, qwen3vl, gemma3, pixtral}
 #   direction ∈ {left, right, above, below}
 
 set -euo pipefail

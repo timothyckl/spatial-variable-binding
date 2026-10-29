@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import csv
 import logging
 import re
@@ -14,10 +16,11 @@ from typing import Dict, List, Optional, Tuple
 from tqdm import tqdm
 
 sys.path.append("./third_party/TransformerLens")
+import transformer_lens as lens
 try:
-    import transformer_lens as lens
-except:
-    import transformer_lens as lens
+    from transformer_lens import utilities as lens_utils
+except ImportError:  # vendored TransformerLens
+    from transformer_lens import utils as lens_utils
 from .vision_language_prompts import VLPrompt, vlp_collate_fn
 from .component import Component
 
@@ -147,7 +150,8 @@ def get_tokens(model_or_processor, prompt):
     Return the tokens of the prompt, in string form.
     e.g. "What is the capital of France?" -> ["What", "is", "the", "capital", "of", "France", "?"].
     """
-    if isinstance(model_or_processor, lens.HookedVLTransformer):
+    hooked_vl_cls = getattr(lens, "HookedVLTransformer", ())
+    if isinstance(model_or_processor, hooked_vl_cls):
         return [
             model_or_processor.to_string(t)
             for t in model_or_processor.to_tokens(prompt.prompt, prompt.images).view(-1)
@@ -454,19 +458,19 @@ def get_hook_dim(model, hook_name):
     Get the size of the output of a specific hook in the model's calculation.
     """
     return {
-        lens.utils.get_act_name("hook_embed", 0): model.cfg.d_model,
-        lens.utils.get_act_name("v_input", 0): model.cfg.d_model,
-        lens.utils.get_act_name("k_input", 0): model.cfg.d_model,
-        lens.utils.get_act_name("q_input", 0): model.cfg.d_model,
-        lens.utils.get_act_name("z", 0): model.cfg.d_head,
-        lens.utils.get_act_name("result", 0): model.cfg.d_model,
-        lens.utils.get_act_name("attn_out", 0): model.cfg.d_model,
-        lens.utils.get_act_name("mlp_post", 0): model.cfg.d_mlp,
-        lens.utils.get_act_name("mlp_in", 0): model.cfg.d_model,
-        lens.utils.get_act_name("mlp_out", 0): model.cfg.d_model,
-        lens.utils.get_act_name("resid_pre", 0): model.cfg.d_model,
-        lens.utils.get_act_name("resid_post", 0): model.cfg.d_model,
-    }[lens.utils.get_act_name(hook_name, 0)]
+        lens_utils.get_act_name("hook_embed", 0): model.cfg.d_model,
+        lens_utils.get_act_name("v_input", 0): model.cfg.d_model,
+        lens_utils.get_act_name("k_input", 0): model.cfg.d_model,
+        lens_utils.get_act_name("q_input", 0): model.cfg.d_model,
+        lens_utils.get_act_name("z", 0): model.cfg.d_head,
+        lens_utils.get_act_name("result", 0): model.cfg.d_model,
+        lens_utils.get_act_name("attn_out", 0): model.cfg.d_model,
+        lens_utils.get_act_name("mlp_post", 0): model.cfg.d_mlp,
+        lens_utils.get_act_name("mlp_in", 0): model.cfg.d_model,
+        lens_utils.get_act_name("mlp_out", 0): model.cfg.d_model,
+        lens_utils.get_act_name("resid_pre", 0): model.cfg.d_model,
+        lens_utils.get_act_name("resid_post", 0): model.cfg.d_model,
+    }[lens_utils.get_act_name(hook_name, 0)]
 
 
 def load_prompts_from_csv(

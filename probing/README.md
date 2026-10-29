@@ -86,6 +86,7 @@ by `shared.whatsup.DEFAULT_IMAGES_DIR`).
 | Slug         | HF id                              | `num_tokens` | `image_px` |
 |--------------|------------------------------------|--------------|------------|
 | `qwen2vl`    | Qwen/Qwen2-VL-7B-Instruct          | 12           | 336        |
+| `qwen3vl`    | Qwen/Qwen3-VL-8B-Instruct          | 12           | 384        |
 | `gemma3`     | google/gemma-3-4b-it               | 16           | 896        |
 | `pixtral`    | mistral-community/pixtral-12b      | 15           | 240        |
 
@@ -97,6 +98,8 @@ Embedding extraction (`src/extract.py`):
 
 - **Qwen2-VL** — `model.vision_model(pixel_values, grid_thw=grid_thw)` already
   returns the projected `(N_merged, D_text)` tensor.
+- **Qwen3-VL** — uses the final vision merger's `pooler_output`, yielding the
+  primary post-projection `(N_merged, D_text)` tensor (not DeepStack features).
 - **Gemma3 / Pixtral** — `model.vision_model(pixel_values).last_hidden_state`
   then `model.multi_modal_projector(.)[0]`. Pixtral's `pixel_values` are
   unwrapped from the processor's list-of-tensors form and cast to the vision

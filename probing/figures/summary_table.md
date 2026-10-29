@@ -21,3 +21,5 @@
 | qwen2vl | squares | horizontal | 1.0000 | 0.0029 |
 | qwen2vl | squares | vertical | 1.0000 | 0.0052 |
 | qwen2vl | whatsup | horizontal | 0.9510 | 0.0700 |
+| qwen3vl | squares | horizontal | 1.0000 | 0.0344 |
+| qwen3vl | squares | vertical | 1.0000 | 0.0546 |

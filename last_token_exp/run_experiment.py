@@ -63,7 +63,7 @@ def parse_args() -> argparse.Namespace:
                    help="GPU device ids for multi-GPU sharding (e.g. 0 1 2)")
     p.add_argument("--n-samples", type=int, default=None,
                    help="cap samples per direction BEFORE filtering "
-                        "(default: use all from cf_pairs.json — 50 per direction)")
+                        "(default: use all from cf_pairs.json — 100 per direction)")
     p.add_argument("--filter", action="store_true",
                    help="re-validate every candidate at runtime by checking the "
                         "model's top-1 on both clean and cf prompts. Off by "

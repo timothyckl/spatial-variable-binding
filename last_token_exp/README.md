@@ -71,7 +71,7 @@ Useful flags:
 
 | flag                | purpose                                                          |
 |---------------------|------------------------------------------------------------------|
-| `--n-samples N`     | cap samples per direction (default: 50)                          |
+| `--n-samples N`     | cap samples per direction (default: all 100 paper-aligned pairs) |
 | `--directions left` | only run a subset of directions                                  |
 | `--batch-size N`    | override per-model default (qwen=13, gemma=5, pixtral=1)         |
 | `--torch-dtype bfloat16` | reduce memory for large models                              |
